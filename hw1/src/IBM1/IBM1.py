@@ -22,12 +22,10 @@ def ReadInData( SourceDataFile, TargetDataFile ):
 def Output( p, File ):
 	Epsilon = 10. ** -5
 	for TargetWord in sorted( p.keys() ):
-		File.write( TargetWord + "\n" )
-		for SourceWord in map( itemgetter(0), sorted( p[ TargetWord ].iteritems(), key=itemgetter(1), reverse=True ) ):
-			if p[ TargetWord ][ SourceWord ] < Epsilon:
+		for SourceWord, Probability in p[ TargetWord ].iteritems():
+			if Probability < Epsilon:
 				continue
-			File.write( "\t%s\t%f\n" % ( SourceWord, p[ TargetWord ][ SourceWord ] ) )
-		File.write( "\n" )
+			File.write( "%s %s %f\n" % ( SourceWord, TargetWord, Probability ) )
 
 # Helper Functions
 def Normalize( p ):
@@ -122,7 +120,7 @@ def Iterate( p, Data ):
 		SourceSentence, TargetSentence = SentencePair
 		SourceSentence = [ "NULL" ] + SourceSentence
 
-		# TargetCounts[ t ] represents SUM( i, 0, S )[ p(t|S_i)]
+		# TargetCounts[ t ] represents SUM( i, 0, S )[ p(t|S_i) ]
 		TargetCounts = defaultdict( lambda: 0.0 )
 		for TargetWord in TargetSentence:
 			for SourceWord in SourceSentence:
