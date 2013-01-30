@@ -1,6 +1,7 @@
 from collections import defaultdict
 from operator import itemgetter
 import sys
+import os
 import pickle
 import ParallelCorpus
 
@@ -213,24 +214,27 @@ def Iterate( Model, Data ):
 
 # Entry Point
 if __name__ == "__main__":
-	if len( sys.argv ) < 3:
-		print "Usage: %s SourceFile TargetFile [Iterations] [SeedLexProbs]" % sys.argv[ 0 ]
+	if len( sys.argv ) < 6:
+		print "Usage: %s SourceFile TargetFile OutputDir [Iterations] [SeedLexProbs]" % sys.argv[ 0 ]
 		exit()
 
-	IterationCount = int( sys.argv[ 3 ] ) if len( sys.argv ) >= 4 else 0
+	OutputDir = sys.argv[ 3 ]
+	IterationCount = int( sys.argv[ 4 ] ) if len( sys.argv ) >= 5 else 0
+	if not os.path.exists( OutputDir ):
+		os.mkdir( OutputDir )
 
 	Data = ParallelCorpus.LoadParallelCorpus( sys.argv[ 1 ], sys.argv[ 2 ] )
 	#Data = [ ( Source + [ "NULL" ], Target ) for ( Source, Target ) in Data ]
 	print "Initializing..."
 	Model = TM()
 	Model.InitializeUniformly( Data )
-	if len( sys.argv ) >= 5:
+	if len( sys.argv ) >= 6:
 		print "Loading IBM1 TM..."
-		Model.TranslationTable = LoadIBM1TM( sys.argv[ 4 ] )
+		Model.TranslationTable = LoadIBM1TM( sys.argv[ 5 ] )
 	ExpectedTargetWordCount = len( Model.TranslationTable )
 
 	print "Dumping output..."
-	pickle.dump( Model, open( "output/HMM0.pkl", "w" ) )
+	pickle.dump( Model, open( os.path.join( OutputDir, "HMM0.pkl" ), "w" ) )
 
 	i = 0
 	while i < IterationCount or IterationCount == 0:
@@ -238,7 +242,7 @@ if __name__ == "__main__":
 		Model = Iterate( Model, Data )
 		i += 1
 		print "Dumping output..."
-		pickle.dump( Model, open( "output/HMM%d.pkl" % i, "w" ) )
+		pickle.dump( Model, open( os.path.join( OutputDir, "HMM%d.pkl" % i ), "w" ) )
 
 		if len( Model.TranslationTable ) != ExpectedTargetWordCount:
 			raise Exception( "Target word dropped from model during iteration %d!" % i )	

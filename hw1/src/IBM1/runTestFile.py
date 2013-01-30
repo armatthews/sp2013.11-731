@@ -1,4 +1,5 @@
 import sys
+from collections import defaultdict
 
 def LoadTM( InputFileName ):
         p = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
@@ -33,12 +34,15 @@ if __name__ == "__main__":
 	SourceSentences = open( SourceSentenceFile ).read().split( "\n" )
 	TargetSentences = open( TargetSentenceFile ).read().split( "\n" )
 
+	print >>sys.stderr, "Loading model..."
         p = LoadTM( STLexProbsFile )
+
+	print >>sys.stderr, "Finding optimal alignments for test set..."
 	for (SourceSentence, TargetSentence) in zip( SourceSentences, TargetSentences):
 		SourceWords = SourceSentence.split()
 		TargetWords = TargetSentence.split()
-		#SourceWordsWithNull = [ "NULL" ] + SourceWords
-		SourceWordsWithNull = SourceWords
+		SourceWordsWithNull = [ "NULL" ] + SourceWords
+		#SourceWordsWithNull = SourceWords
 
 		Alignment, Probability = GetBestAlignment( p, SourceWordsWithNull, TargetWords )
 		SourceOutput = " ".join( SourceWordsWithNull )

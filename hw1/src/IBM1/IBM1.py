@@ -20,7 +20,7 @@ def ReadInData( SourceDataFile, TargetDataFile ):
 	return Data
 
 def Output( p, File ):
-	Epsilon = 10. ** -5
+	Epsilon = 0.0
 	for TargetWord in sorted( p.keys() ):
 		for SourceWord, Probability in p[ TargetWord ].iteritems():
 			if Probability < Epsilon:
@@ -148,19 +148,24 @@ def Iterate( p, Data ):
 
 # Entry Point
 if __name__ == "__main__":
-	if len( sys.argv ) < 3:
-		print >>sys.stdout, "Usage: %s SourceFile TargetFile [IterationCount]" % sys.argv[ 0 ]
+	if len( sys.argv ) < 4:
+		print >>sys.stdout, "Usage: python %s SourceFile TargetFile OutputDir [IterationCount]" % sys.argv[ 0 ]
 		print >>sys.stdout, "If IterationCount is 0 or not specified, will run forever."
 		exit( 1 )
 
-	IterationCount = int( sys.argv[ 3 ] ) if len( sys.argv ) >= 4 else 0
+	OutputDir = sys.argv[ 3 ]
+	IterationCount = int( sys.argv[ 4 ] ) if len( sys.argv ) >= 5 else 0
+	if not os.path.exists( OutputDir ):
+		os.mkdir( OutputDir )
 
+	print >>sys.stdout, "Reading in data..."
 	Data = ReadInData( sys.argv[ 1 ], sys.argv[ 2 ] )
-	OutputDir = "output"
-	p = InitializeUniformly( Data )
-	Iteration = 0
-	Epsilon = 10. ** -5
 
+	print >>sys.stdout, "Initializing model..."
+	p = InitializeUniformly( Data )
+	Iteration = 0	
+
+	print >>sys.stdout, "Outputting iteration #%d" % Iteration
 	File = open( os.path.join( OutputDir, "Iteration%d.txt" % Iteration ), "w" )
 	Output( p, File )
 	File.close()
