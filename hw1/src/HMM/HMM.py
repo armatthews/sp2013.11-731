@@ -4,6 +4,7 @@ import sys
 import os
 import pickle
 import ParallelCorpus
+import copy
 
 def Zero():
 	return 0.0
@@ -16,70 +17,105 @@ def LoadIBM1TM( InputFileName ):
         for Line in open( InputFileName, "r" ):
                 Line = Line.decode( "utf-8" ).strip()
 		Source, Target, Probability = Line.split()
-                p[ Target ][ Source ] = float( Probability )
+		if float( Probability ) != 0.0:
+	                p[ Target ][ Source ] = float( Probability )
         return p
+
+def Normalize( Table ):
+	Total = 0.0
+	for Key in Table.keys():
+		Total += Table[ Key ]
+		if Table[ Key ] == 0.0:
+			del Table[ Key ]
+
+	assert len( Table.keys() ) == 0 or Total > 0.0
+
+	for Key in Table.keys():
+		Table[ Key ] /= Total
+		assert Table[ Key ] > 0.0 and Table[ Key ] <= 1.0
+
+	return Table
 
 class TM:
 	def __init__( self ):
 		self.TranslationTable = defaultdict( DefaultDictZero ) # TranslationTable[ Target ][ Source ]
-		self.TransitionTable = defaultdict( DefaultDictZero ) # TransitionTable[ len( Target ) ][ a_j - a_j-1 ]
+		self.TransitionTable = defaultdict( Zero ) # TransitionTable[ a_j - a_(j-1) ]
+		self.NullProbability = 0.99
 
 	def InitializeUniformly( self, Data ):
-		MaxSourceLen = max( map( len, map( itemgetter(0), Data ) ) ) + 1 # +1 for NULL
-		MaxTargetLen = max( map( len, map( itemgetter(1), Data ) ) )
-		for i in range( MaxSourceLen + 1 ):
+		MaxSourceLen = max( map( len, map( itemgetter(0), Data ) ) )
+		for d in range( -MaxSourceLen + 1, MaxSourceLen ):
 			val = 1.0 / ( 2 * MaxSourceLen - 1 )
-			for d in range( -MaxSourceLen + 1, MaxSourceLen ):
-				self.TransitionTable[ i ][ d ] = 1.0 / ( abs( d - 1.0 ) + 1 )
+			self.TransitionTable[ d ] = val
 		self.NormalizeTransitionTable()
 
 		for SourceSentence, TargetSentence in Data:
 			for SourceWord in [ "NULL" ] + SourceSentence:
+			#for SourceWord in SourceSentence:
 				for TargetWord in TargetSentence:
-					self.TranslationTable[ TargetWord ][ SourceWord ] += ( 1.0 if SourceWord is not "NULL" else 0.01 )
+					self.TranslationTable[ TargetWord ][ SourceWord ] += 1.0
 		self.NormalizeTranslationTable()
 
+		self.NullProbability = 0.99
+		self.UniformTranslationTable = copy.copy( self.TranslationTable )
+		self.UniformTransitionTable = copy.copy( self.TransitionTable )
+
 	def NormalizeTranslationTable( self ):
-		p = self.TranslationTable
-		for TargetWord in p.keys():
-			Total = 0.0
-			for SourceWord in p[ TargetWord ].keys():
-				Total += p[ TargetWord ][ SourceWord ]
-			for SourceWord in p[ TargetWord ].keys():
-				if Total != 0.0:
-					p[ TargetWord ][ SourceWord ] /= Total
-				else:
-					p[ TargetWord ][ SourceWord ] = 0.0
-		return p
+		SourceCounts = defaultdict( Zero )
+		for TargetWord in self.TranslationTable.keys():
+			for SourceWord, Value in self.TranslationTable[ TargetWord ].iteritems():
+				SourceCounts[ SourceWord ] += Value
+
+		for TargetWord in self.TranslationTable.keys():
+			for SourceWord, Value in self.TranslationTable[ TargetWord ].iteritems():
+				self.TranslationTable[ TargetWord ][ SourceWord ] = Value / SourceCounts[ SourceWord ]
+ 
+		return self.TranslationTable
 
 	def NormalizeTransitionTable( self ):
-		p = self.TransitionTable
-		for Length in p.keys():
-			Total = 0.0
-			for Delta in p[ Length ].keys():
-				Total += p[ Length ][ Delta ]
-			for Delta in p[ Length ].keys():
-				if Total != 0.0:
-					p[ Length ][ Delta ] /= Total
-				else:
-					p[ Length ][ Delta ] = 0.0
-		return p
+		self.TransitionTable = Normalize( self.TransitionTable )
+		return self.TransitionTable
 
 	def __repr__( self ):
 		r = u""
-		for I in self.TransitionTable.keys():
-			r += u"%d: %s\n" % ( I, str( dict( self.TransitionTable[ I ] ) ) )
+		r += "%g\n\n" % self.NullProbability
+
+		for d in sorted( self.TransitionTable.keys() ):
+			r += u"%d %g\n" % ( d, self.TransitionTable[ d ] )
 
 		if len( self.TransitionTable.keys() ) > 0:
 			r += u"\n"
 
 		for TargetWord in sorted( self.TranslationTable.keys() ):
-			r += u"%s\n" % TargetWord
 			for SourceWord in sorted( self.TranslationTable[ TargetWord ].keys(), key = lambda k: self.TranslationTable[ TargetWord ][ k ], reverse = True ):
-				if self.TranslationTable[ TargetWord ][ SourceWord ] > 10.0 ** -6:
-					r += u"\t%s: %f\n" % ( SourceWord, self.TranslationTable[ TargetWord ][ SourceWord ] )
+					r += u"%s %s %f\n" % ( SourceWord, TargetWord, self.TranslationTable[ TargetWord ][ SourceWord ] )
 	
 		return r.encode( "utf-8" )
+	
+	def Output( self, stream ):
+		stream.write( u"%g\n\n" % self.NullProbability )
+
+		for d in sorted( self.TransitionTable.keys() ):
+			stream.write( u"%d %g\n" % ( d, self.TransitionTable[ d ] ) )
+
+		if len( self.TransitionTable.keys() ) > 0:
+			stream.write( u"\n" )
+
+		for TargetWord in sorted( self.TranslationTable.keys() ):
+			for SourceWord in sorted( self.TranslationTable[ TargetWord ].keys(), key = lambda k: self.TranslationTable[ TargetWord ][ k ], reverse = True ):
+					stream.write( ( u"%s %s %g\n" % ( SourceWord, TargetWord, self.TranslationTable[ TargetWord ][ SourceWord ] ) ).encode( "utf-8" ) )
+
+	def Input( self, stream ):
+		self.NullProbability = float( stream.readline().strip() )
+		stream.readline()
+		Line = stream.readline()
+		while Line != "":
+			Parts = Line.strip().split()
+			if len( Parts ) == 2:
+				self.TransitionTable[ int( Parts[ 0 ] ) ] = float( Parts[ 1 ] )
+			elif len( Parts ) == 3:
+				self.TranslationTable[ Parts[ 1 ] ][ Parts[ 0 ] ] = float( Parts[ 2 ] )
+			Line = stream.readline()
 
 	def GetBestAlignment( self, Source, Target ):
 		I = len( Source )
@@ -92,29 +128,42 @@ class TM:
 		# Table[ i ][ j ] represents the probability of the best
 		# alignment given that Source[ i ] is aligned to Target[ j ]
 		# Path is used to backtrack once we find the optimal path.
-		Table = [ [ 0 for j in range( J ) ] for i in range( I ) ]
-		Path = [ [ -1 for j in range( J ) ] for i in range( I ) ]
+		Table = [ [ 0 for j in range( J ) ] for i in range( 2*I ) ]
+		Path = [ [ -1 for j in range( J ) ] for i in range( 2*I ) ]
 
-		for i in range( I ):
+		# Since the full transition table may put probability mass on transitions
+		# to words outside the bounds of the source sentence, we will create a copy
+		# that disallows such transitions, and re-normalize.
+		LocalTransitionTable = defaultdict( Zero )
+		for i in range( -I + 1, I ):
+			LocalTransitionTable[ i ] = self.TransitionTable[ i ]
+		LocalTransitionTable = Normalize( LocalTransitionTable )
+
+		for i in range( 2 * I ):
 			j = 0
-			Table[ i ][ j ] = self.TranslationTable[ Target[ j ] ][ Source[ i ] ]
-			if Table[ i ][ j ] == 0.0:
-				Table[ i ][ j ] = 10.0 ** -7
+			Table[ i ][ j ] = self.TranslationTable[ Target[ j ] ][ Source[ i ] if i < I else "NULL" ]
 
 		for j in range( 1, J ):
 			for i in range( I ):
 				Best = None
 				for ip in range( I ):
-					if self.TransitionTable[ I ][ i - ip ] > 0.0:
-						Score = self.TransitionTable[ I ][ i - ip ] * Table[ ip ][ j - 1 ]
+					if i >= I and ip >= I:
+						TransitionCost = self.NullProbability * LocalTransitionTable[ ( i - I ) - ( ip - I ) ]
+					elif i >= I:
+						TransitionCost = self.NullProbability * LocalTransitionTable[ ( i - I ) - ip ]
+					elif ip >= I:
+						TransitionCost = LocalTransitionTable[ i - ( ip - I ) ]
 					else:
-						Score = 10.0 ** -7 * Table[ ip ][ j - 1]
+						TransitionCost = LocalTransitionTable[ i - ip ]
+
+					#print "Transition cost i=%d j=%d ip=%d is %g" % ( i, j, ip, TransitionCost )
+					Score = TransitionCost * Table[ ip ][ j - 1 ]
 					if Best == None or Score > Best:
 						Best = Score
 						Path[ i ][ j ] = ip
-				TranslationProbability = self.TranslationTable[ Target[ j ] ][ Source[ i ] ]
-				if TranslationProbability == 0.0:
-					TranslationProbability = 10.0 ** -7
+
+				TranslationProbability = self.TranslationTable[ Target[ j ] ][ Source[ i ] if i < I else "NULL" ]
+				#print "Translation cost of t=\"%s\" s=\"%s\" is %g" % ( Target[ j ], Source[ i ] if i < I else "NULL", TranslationProbability )
 				Table[ i ][ j ] = TranslationProbability * Best
 
 		# Table computations complete.
@@ -123,7 +172,7 @@ class TM:
 		# to find the actual alignment.
 
 		Best = None
-		for i in range( I ):
+		for i in range( 2 * I ):
 			if Best == None or Table[ i ][ -1 ] > Table[ Best ][ -1 ]:
 				Best = i
 
@@ -137,85 +186,97 @@ class TM:
 
 		return ( Alignment, Probability )
 
-# Initialize uniformly
-# To do this we set every entry in p[ t ][ s ] to 1
-# and then normalize at the end
-def InitializeUniformly( Data ):
-	p = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
-
-	for SourceSentence, TargetSentence in Data:
-		for TargetWord in TargetSentence:
-			for SourceWord in SourceSentence + [ "NULL" ]:
-				p[ TargetWord ][ SourceWord ] = 1.0
-	p = Normalize( p )
-	return p
-
 # Every target word maps to exactly one source word
 def IterateTables( TranslationTable, TransitionTable, Data ):
 	q = defaultdict( DefaultDictZero )
 	r = defaultdict( DefaultDictZero )
-        SourceCounts = defaultdict( Zero )
         JointCounts = defaultdict( DefaultDictZero )
+	SourceCounts = defaultdict( Zero )
 	TargetCounts = defaultdict( Zero )
-	TransitionCounts = defaultdict( DefaultDictZero )
-	DeltaCounts = defaultdict( Zero )
+	TransitionCounts = defaultdict( Zero )
+	NullTransitions = 0.0
+	NonNullTransitions = 0.0
 
 	for i, SentencePair in enumerate( Data ):
-		if i % 1000 == 0:
-			sys.stdout.write( "Examined %d/%d sentences.\r" % ( i, len( Data ) ) )
+		sys.stdout.write( "Examined %d/%d sentences.\r" % ( i, len( Data ) ) )
+		sys.stdout.flush()
+
 		SourceSentence, TargetSentence = SentencePair
-		SourceSentence = [ "NULL" ] + SourceSentence
+		I = len( SourceSentence )
 		
 		# Update the counts
 		Alignment, AlignmentProbability = Model.GetBestAlignment( SourceSentence, TargetSentence )
-		#AlignmentProbability /= AlignmentProbability
+		AlignmentProbability = 1.0
+		assert AlignmentProbability >= 0.0 and AlignmentProbability <= 1.0
+		#sys.stderr.write( "Best alignment of sentence %d: %s with p %g\n" % ( i, Alignment, AlignmentProbability ) )
+
 		for j in range( len( TargetSentence ) ):
-			SourceWord = SourceSentence[ Alignment[ j ] ]
+			SourceWord = SourceSentence[ Alignment[ j ] ] if Alignment[ j ] < I else "NULL"
 			TargetWord = TargetSentence[ j ]
 			JointCounts[ TargetWord ][ SourceWord ] += AlignmentProbability
 			SourceCounts[ SourceWord ] += AlignmentProbability
-			if j > 0:
-				TransitionCounts[ len( SourceSentence ) ][ Alignment[ j ] - Alignment[ j - 1 ] ] += AlignmentProbability
-				DeltaCounts[ Alignment[ j ] - Alignment[ j - 1 ] ] += AlignmentProbability
+			TargetCounts[ TargetWord ] += AlignmentProbability
 
-	for Length in TransitionCounts.keys():
-		for Delta in TransitionCounts[ Length ].keys():
-			if DeltaCounts[ Delta ] > 0.0:
-				r[ Length ][ Delta ] = TransitionCounts[ Length ][ Delta ] / DeltaCounts[ Delta ]
+			if Alignment[ j ] >= I:
+				NullTransitions += AlignmentProbability
 			else:
-				if TransitionCounts[ Length ][ Delta ] == 0.0:
-					r[ Length ][ Delta ] = 0.0
-				else:
-					raise Exception()
+				NonNullTransitions += AlignmentProbability
 
-        for gwar, TargetWord in enumerate( JointCounts.keys() ):
-		#print gwar, TargetWord
-                for SourceWord in JointCounts[ TargetWord ].keys():
-			if SourceCounts[ SourceWord ] > 0.0:
+			if Alignment[ j ] < I and j > 0:
+				TransitionCounts[ Alignment[ j ] - Alignment[ j - 1 ] ] += AlignmentProbability
+
+	sys.stdout.write( "Examined %d/%d sentences.\n" % ( len( Data ), len( Data ) ) )
+	sys.stdout.flush()
+
+	r = Normalize( TransitionCounts )
+	for TargetWord in JointCounts.keys():
+		for SourceWord in JointCounts[ TargetWord ].keys():
+			if SourceCounts[ SourceWord ] != 0.0:
 				q[ TargetWord ][ SourceWord ] = JointCounts[ TargetWord ][ SourceWord ] / SourceCounts[ SourceWord ]
 			else:
-				if JointCounts[ TargetWord ][ SourceWord ] == 0.0:
-					q[ TargetWord ][ SourceWord ] = 0.0
-				else:
-					raise Exception()
+				assert JointCounts[ TargetWord ][ SourceWord ] == 0.0
+	NullProbability = NullTransitions / ( NullTransitions + NonNullTransitions )
 
-	return q, r
+	return q, r, NullProbability
 
 def Iterate( Model, Data ):
-	NewTranslationTable, NewTransitionTable = IterateTables( Model.TranslationTable, Model.TransitionTable, Data )
+	NewTranslationTable, NewTransitionTable, NewNullProbability = IterateTables( Model.TranslationTable, Model.TransitionTable, Data )
 
 	NewModel = TM()
 	NewModel.TranslationTable = NewTranslationTable
 	NewModel.TransitionTable = NewTransitionTable
 	NewModel.TranslationTable = NewModel.NormalizeTranslationTable()
 	NewModel.TransitionTable = NewModel.NormalizeTransitionTable()
+	NewModel.NullProbability = NewNullProbability
+	NewModel.UniformTranslationTable = Model.UniformTranslationTable
+	NewModel.UniformTransitionTable = Model.UniformTransitionTable
+
+	print "Smoothing probability tables..."
+	Alpha = 0.4
+	#for SourceSentence, TargetSentence in Data:
+	#	for TargetWord in TargetSentence:
+	#		for SourceWord in [ "NULL" ] + SourceSentence:
+	#			NewModel.TranslationTable[ TargetWord ][ SourceWord ] = ( 1.0 - Alpha ) * NewTranslationTable[ TargetWord ][ SourceWord ] + Alpha * NewModel.UniformTranslationTable[ TargetWord ][ SourceWord ]
+
+	#for Delta in NewModel.UniformTransitionTable.keys():
+	#	NewModel.TransitionTable[ Delta ] = ( 1.0 - Alpha ) * NewTransitionTable[ Delta ] + Alpha * NewModel.UniformTransitionTable[ Delta ]
+
+	print "Doing final normalization pass..."
+	NewModel.NormalizeTranslationTable()
+	NewModel.NormalizeTransitionTable()
 
 	return NewModel
 
+def Output( Model, IterationNumber, OutputDir ):
+	print "Dumping output for iteration %d..." % IterationNumber
+	f = open( os.path.join( OutputDir, "%d.txt" % IterationNumber ), "w" )
+	Model.Output( f )
+	f.close()
+
 # Entry Point
 if __name__ == "__main__":
-	if len( sys.argv ) < 6:
-		print "Usage: %s SourceFile TargetFile OutputDir [Iterations] [SeedLexProbs]" % sys.argv[ 0 ]
+	if len( sys.argv ) < 4:
+		print "Usage: python %s SourceFile TargetFile OutputDir [Iterations] [SeedLexProbs]" % sys.argv[ 0 ]
 		exit()
 
 	OutputDir = sys.argv[ 3 ]
@@ -223,8 +284,7 @@ if __name__ == "__main__":
 	if not os.path.exists( OutputDir ):
 		os.mkdir( OutputDir )
 
-	Data = ParallelCorpus.LoadParallelCorpus( sys.argv[ 1 ], sys.argv[ 2 ] )
-	#Data = [ ( Source + [ "NULL" ], Target ) for ( Source, Target ) in Data ]
+	Data = ParallelCorpus.LoadParallelCorpus( sys.argv[ 1 ], sys.argv[ 2 ] )	
 	print "Initializing..."
 	Model = TM()
 	Model.InitializeUniformly( Data )
@@ -233,16 +293,13 @@ if __name__ == "__main__":
 		Model.TranslationTable = LoadIBM1TM( sys.argv[ 5 ] )
 	ExpectedTargetWordCount = len( Model.TranslationTable )
 
-	print "Dumping output..."
-	pickle.dump( Model, open( os.path.join( OutputDir, "HMM0.pkl" ), "w" ) )
-
 	i = 0
+	Output( Model, i, OutputDir )
 	while i < IterationCount or IterationCount == 0:
-		print "Beginning iteration %d" % ( i + 1 )
-		Model = Iterate( Model, Data )
 		i += 1
-		print "Dumping output..."
-		pickle.dump( Model, open( os.path.join( OutputDir, "HMM%d.pkl" % i ), "w" ) )
+		print "Beginning iteration %d" % i
+		Model = Iterate( Model, Data )
+		Output( Model, i, OutputDir )
 
-		if len( Model.TranslationTable ) != ExpectedTargetWordCount:
-			raise Exception( "Target word dropped from model during iteration %d!" % i )	
+		#if len( Model.TranslationTable ) != ExpectedTargetWordCount:
+		#	raise Exception( "Target word dropped from model during iteration %d!" % i )
