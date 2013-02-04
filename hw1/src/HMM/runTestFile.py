@@ -1,5 +1,6 @@
 import pickle
 import sys
+import math
 from HMM import TM, DefaultDictZero, Zero
 
 
@@ -18,9 +19,11 @@ if __name__ == "__main__":
         TargetSentences = open( TargetSentenceFile ).read().split( "\n" )
 
         print >>sys.stderr, "Loading model..."
-        Model = pickle.load( open( ModelFile, "r" ) )
+        Model = TM()
+	Model.Input( open( ModelFile ) )
 
         print >>sys.stderr, "Finding optimal alignments for test set..."
+	TestSetLogProb = 0.0
         for ( SourceSentence, TargetSentence ) in zip( SourceSentences, TargetSentences ):
                 SourceWords = SourceSentence.strip().split()
                 TargetWords = TargetSentence.strip().split()
@@ -32,6 +35,10 @@ if __name__ == "__main__":
                 SourceWordsWithNull = SourceWords
 
                 Alignment, Probability = Model.GetBestAlignment( SourceWordsWithNull, TargetWords )
+		LogProb = math.log( Probability ) if Probability != 0.0 else float( "-inf" )
+		TestSetLogProb += LogProb
                 AlignmentOutput = [ (j,i) for i,j in enumerate( Alignment ) ]
-                print " ".join( [ "%d-%d" % (i,j) for (i,j) in AlignmentOutput ] )
+                AlignmentString =  " ".join( [ "%d-%d" % (i,j) for (i,j) in AlignmentOutput ] )
+		print "\t".join( [ SourceSentence, TargetSentence, AlignmentString, str( LogProb ) ] )
+	print "Test set log prob:", TestSetLogProb
 	print >>sys.stderr, "Done!"
