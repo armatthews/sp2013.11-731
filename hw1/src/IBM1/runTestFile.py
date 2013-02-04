@@ -1,4 +1,5 @@
 import sys
+import math
 from collections import defaultdict
 
 def LoadTM( InputFileName ):
@@ -38,6 +39,7 @@ if __name__ == "__main__":
         p = LoadTM( STLexProbsFile )
 
 	print >>sys.stderr, "Finding optimal alignments for test set..."
+	TestSetLogProb = 0.0
 	for (SourceSentence, TargetSentence) in zip( SourceSentences, TargetSentences):
 		SourceWords = SourceSentence.split()
 		TargetWords = TargetSentence.split()
@@ -45,7 +47,10 @@ if __name__ == "__main__":
 		#SourceWordsWithNull = SourceWords
 
 		Alignment, Probability = GetBestAlignment( p, SourceWordsWithNull, TargetWords )
+		TestSetLogProb += math.log( Probability )
 		SourceOutput = " ".join( SourceWordsWithNull )
 		TargetOutput = " ".join( TargetWords )
 		AlignmentOutput = [ (j,i) for i,j in enumerate( Alignment ) ]
-		print " ".join( [ "%d-%d" % (i,j) for (i,j) in AlignmentOutput ] )
+		print " ".join( [ "%d-%d" % (i - 1,j) for (i,j) in AlignmentOutput if i != 0 ] )
+
+	print "Test set log prob:", TestSetLogProb
