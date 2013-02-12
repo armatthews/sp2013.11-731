@@ -47,7 +47,8 @@ if __name__ == "__main__":
 		#SourceWordsWithNull = SourceWords
 
 		Alignment, Probability = GetBestAlignment( p, SourceWordsWithNull, TargetWords )
-		TestSetLogProb += math.log( Probability )
+		LogProb = math.log( Probability ) if Probability > 0.0 else float( "-inf" )
+		TestSetLogProb += LogProb
 		SourceOutput = " ".join( SourceWordsWithNull )
 		TargetOutput = " ".join( TargetWords )
 		AlignmentOutput = [ (j,i) for i,j in enumerate( Alignment ) ]
