@@ -1,0 +1,32 @@
+=== Diag ===
+AER = 0.741798
+
+=== IBM1 ===
+S2T
+AER = 0.420189
+
+w/ NULL (Cased)
+AER = 0.418107
+
+lowercased
+AER = 0.415609
+
+w/ Stemming
+AER = 0.406101
+
+=== HMM ===
+
+HMM Stemming S2T
+AER = 0.267823
+
+HMM Stemming T2S
+AER = 0.313898
+
+Stemming grow-diag-final source only
+AER = 0.289402
+
+Stemming grow-diag-final both
+AER = 0.322599
+
+S2T w/ PE
+AER = 0.243939
