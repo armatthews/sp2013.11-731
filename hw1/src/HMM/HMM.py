@@ -50,8 +50,7 @@ class TM:
 		self.NormalizeTransitionTable()
 
 		for SourceSentence, TargetSentence in Data:
-			for SourceWord in [ "NULL" ] + SourceSentence:
-			#for SourceWord in SourceSentence:
+			for SourceWord in [ "NULL" ] + SourceSentence:	
 				for TargetWord in TargetSentence:
 					self.TranslationTable[ TargetWord ][ SourceWord ] += 1.0
 		self.NormalizeTranslationTable()
@@ -172,7 +171,7 @@ class TM:
 		# to find the actual alignment.
 
 		Best = None
-		for i in range( 2 * I ):
+		for i in range( I ):
 			if Best == None or Table[ i ][ -1 ] > Table[ Best ][ -1 ]:
 				Best = i
 
@@ -258,8 +257,8 @@ def Iterate( Model, Data ):
 	#		for SourceWord in [ "NULL" ] + SourceSentence:
 	#			NewModel.TranslationTable[ TargetWord ][ SourceWord ] = ( 1.0 - Alpha ) * NewTranslationTable[ TargetWord ][ SourceWord ] + Alpha * NewModel.UniformTranslationTable[ TargetWord ][ SourceWord ]
 
-	#for Delta in NewModel.UniformTransitionTable.keys():
-	#	NewModel.TransitionTable[ Delta ] = ( 1.0 - Alpha ) * NewTransitionTable[ Delta ] + Alpha * NewModel.UniformTransitionTable[ Delta ]
+	for Delta in NewModel.UniformTransitionTable.keys():
+		NewModel.TransitionTable[ Delta ] = ( 1.0 - Alpha ) * NewTransitionTable[ Delta ] + Alpha * NewModel.UniformTransitionTable[ Delta ]
 
 	print "Doing final normalization pass..."
 	NewModel.NormalizeTranslationTable()

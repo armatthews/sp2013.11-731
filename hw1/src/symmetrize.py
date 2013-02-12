@@ -101,5 +101,5 @@ for Source, Target, STAlign, TSAlign in Data:
 	Alignment = Intersection( STAlign, TSAlign )
 	Alignment = GrowDiag( Alignment, STAlign, TSAlign, SourceLength, TargetLength )
 	Alignment = Final( Alignment, STAlign, SourceLength, TargetLength )
-	Alignment = Final( Alignment, TSAlign, SourceLength, TargetLength )
+	#Alignment = Final( Alignment, TSAlign, SourceLength, TargetLength )
 	print " ".join( [ "%d-%d" % Link for Link in Alignment ] )
