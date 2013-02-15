@@ -1,5 +1,9 @@
 import sys
 
+Alpha = 0.85 # 0.65 was tuned best
+Beta = 0.2
+Gamma = 0.6
+
 def Precision( Hyp, Ref ):
 	return 1.0 * len( [ Word for Word in Hyp if Word in Ref ] ) / len( Hyp )
 
@@ -38,8 +42,8 @@ def Meteor( Hyp, Ref, Alpha=0.5, Beta=1.0, Gamma=1.0 ):
 for Line in sys.stdin:
 	Parts = [ Part.strip() for Part in Line.strip().split( "|||" ) ]
 	HypA, HypB, Ref = [ Part.split() for Part in Parts ]
-	ScoreA = Meteor( HypA, Ref )
-	ScoreB = Meteor( HypB, Ref )
+	ScoreA = Meteor( HypA, Ref, Alpha, Beta, Gamma )
+	ScoreB = Meteor( HypB, Ref, Alpha, Beta, Gamma )
 	if ScoreA > ScoreB:
 		print -1
 	elif ScoreA == ScoreB:
