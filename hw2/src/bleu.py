@@ -69,7 +69,6 @@ def Score( Hyp, Ref ):
 if __name__ == "__main__":
 	import sys
 	for HypA, HypB, Ref in ReadData( sys.stdin ):
-		Ref = " ".join( Ref )
 		ScoreA = Score( HypA, Ref )
 		ScoreB = Score( HypB, Ref )
 		if ScoreA > ScoreB:
