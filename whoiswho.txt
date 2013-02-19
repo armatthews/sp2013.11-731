@@ -12,5 +12,5 @@ ProfDyer(oracle)	Chris Dyer
 aspen	Rui Liu
 Zaitun	Yibin Lin
 notyou	Jon Barker
-ytsvetko	Yuila Tsvetkov
+ytsvetko	Yulia Tsvetkov
 AerinZ	Shikun Zhang
