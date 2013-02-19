@@ -1,5 +1,7 @@
 from collections import defaultdict
 from operator import itemgetter
+from math import exp
+from scipy.special import digamma
 import sys
 import pickle
 import os
@@ -108,29 +110,45 @@ def InitializeUniformly( Data ):
 # With this simplification we now have count(t|s;S,T) = [ p(t|s) / SUM(i,0,|S|) p(t|S_i) ] * count(a) * count(x).
 # Finally, p(t|s;Corpus) = SUM( (S,T) in Corpus )[ count(t|s;S,T) ] / SUM(s)[ SUM( (T,S) in Corpus)[ count(t|s;T,S) ] ] where the sum over s is over all source word in the corpus.
 
+def h( i, j, m, n ):
+	return -abs( 1.0 * i / m - 1.0 * j / n )
+
+def Prior( i, j, m, n ):
+	return 1.0
+	l = 6.37607551
+	return exp( l * h( i, j, m, n ) )
+
+def Smooth( c ):
+	return c
+	return exp( digamma( c + 0.5 ) )
+
 def Iterate( p, Data ):
 	q = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
 	SourceCounts = defaultdict( lambda: 0.0 )
 	JointCounts = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
 
-	for i, SentencePair in enumerate( Data ):
-		if i % 1000 == 0:
-			sys.stderr.write( "%d/%d sentences examined\r" % ( i, len( Data ) ) )
+	for SentenceNum, SentencePair in enumerate( Data ):
+		if SentenceNum % 1000 == 0:
+			sys.stderr.write( "%d/%d sentences examined\r" % ( SentenceNum, len( Data ) ) )
 			sys.stderr.flush()
 		SourceSentence, TargetSentence = SentencePair
 		SourceSentence = [ "NULL" ] + SourceSentence
+		m = len( SourceSentence )
+		n = len( TargetSentence )
 
 		# TargetCounts[ t ] represents SUM( i, 0, S )[ p(t|S_i) ]
 		TargetCounts = defaultdict( lambda: 0.0 )
-		for TargetWord in TargetSentence:
-			for SourceWord in SourceSentence:
-				TargetCounts[ TargetWord ] += p[ TargetWord ][ SourceWord ]
-
-		# Both JointCounts and TargetCounts are sums over the entire corpus.
+	
+		# Both JointCounts and SourceCounts are sums over the entire corpus.
 		# Here we calculate the contribution of this sentence pair, and add it into those two variables.
-		for TargetWord in TargetSentence:
-			for SourceWord in SourceSentence:
-				Count = p[ TargetWord ][ SourceWord ] / TargetCounts[ TargetWord ]
+		for j, TargetWord in enumerate( TargetSentence ):
+			PriorSum = sum( [ Prior( i, j, m, n ) for i in range( len( SourceSentence ) ) ] )
+			for i, SourceWord in enumerate( SourceSentence ):
+				prior = Prior( i, j, m, n ) / PriorSum
+				TargetCounts[ TargetWord ] += prior * p[ TargetWord ][ SourceWord ]
+			for i, SourceWord in enumerate( SourceSentence ):
+				prior = Prior( i, j, m, n ) / PriorSum
+				Count = prior * p[ TargetWord ][ SourceWord ] / TargetCounts[ TargetWord ]
 				JointCounts[ TargetWord ][ SourceWord ] += Count
 				SourceCounts[ SourceWord ] += Count
 
@@ -140,7 +158,7 @@ def Iterate( p, Data ):
 	print >>sys.stderr, "Collecting counts"
 	for TargetWord in JointCounts.keys():
 		for SourceWord in JointCounts[ TargetWord ].keys():
-				q[ TargetWord ][ SourceWord ] = JointCounts[ TargetWord ][ SourceWord ] / SourceCounts[ SourceWord ]
+				q[ TargetWord ][ SourceWord ] = Smooth( JointCounts[ TargetWord ][ SourceWord ] ) / Smooth( SourceCounts[ SourceWord ] )
 
 	print >>sys.stderr, "Normalizing counts"
 	q = Normalize( q )
