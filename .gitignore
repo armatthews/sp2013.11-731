@@ -1,5 +1,6 @@
 *.class
 *.log
+*.pyc
 
 # sbt specific
 dist/*
@@ -11,3 +12,55 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+
+# Other
+hw1/LexProbs/
+hw1/data/lol.py
+hw1/data/singletons-source.txt
+hw1/data/singletons-target.txt
+hw1/data/test-source-stemmed.txt
+hw1/data/test-source.txt
+hw1/data/test-target-stemmed.txt
+hw1/data/test-target.txt
+hw1/data/train-source-stemmed.txt
+hw1/data/train-source.txt
+hw1/data/train-target-stemmed.txt
+hw1/data/train-target.txt
+hw1/dice.al
+hw1/output.pe
+hw1/output.raw
+hw1/src/HMM/HMM.pyc
+hw1/src/HMM/IBM1-T2S/
+hw1/src/HMM/IBM1-stemmed-T2S/
+hw1/src/HMM/IBM1-stemmed/
+hw1/src/HMM/IBM1/
+hw1/src/HMM/ParallelCorpus.pyc
+hw1/src/HMM/data/
+hw1/src/HMM/output-T2S/
+hw1/src/HMM/output-stemmed-T2S/
+hw1/src/HMM/output-stemmed/
+hw1/src/HMM/output-transitionsmoothing0.4/
+hw1/src/HMM/output-withnulls/
+hw1/src/HMM/output/
+hw1/src/HMM/test.sh
+hw1/src/IBM1/output-cased/
+hw1/src/IBM1/output-digamma/
+hw1/src/IBM1/output-lower/
+hw1/src/IBM1/output-prior/
+hw1/src/IBM1/output-stemmed/
+hw1/src/IBM1/output/
+hw1/src/IBM1/st-alignments-withnull.txt
+hw1/src/IBM1/st-alignments.txt
+hw1/src/IBM1/sym-alignments.txt
+hw1/src/IBM1/ts-alignments.txt
+hw1/src/removeSingletonLinks.py
+hw1/st
+hw1/ts
+hw2/data/test.hyp1-hyp2-ref.tok
+hw2/data/train.hyp1-hyp2-ref.tok
+hw2/meteorTest/
+hw2/src/bleu-output.txt
+hw2/src/bleu2-output.txt
+hw2/src/bleu2.py
+hw2/tercom-0.7.25/
+test.txt

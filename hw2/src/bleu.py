@@ -31,7 +31,10 @@ def stats( Hyp, Ref, N ):
 def score( Stats, N ):
 	refWords = 1.0 * Stats.RefLength
 	hypWords = 1.0 * Stats.Attempts[ 1 ]
-	brevityPenalty = math.exp( 1.0 - refWords / hypWords ) if hypWords < refWords else 1.0
+	if hypWords == 0.0:
+		brevityPenalty = 0.0
+	else:
+		brevityPenalty = math.exp( 1.0 - refWords / hypWords ) if hypWords < refWords else 1.0
 
 	Score = 0.0
 	SmoothingFactor = 1.0
@@ -39,7 +42,6 @@ def score( Stats, N ):
 	for Order in range( 1, N + 1 ):
 		Attempts = Stats.Attempts[ Order ]
 		Matches = Stats.Matches[ Order ]
-
 		if Attempts == 0:
 			OrderScore = 0.0
 		elif Matches == 0:
@@ -52,7 +54,7 @@ def score( Stats, N ):
 
 		Weight = 1.0 / N
 		Score += OrderScore * Weight
-
+	
 	Score = brevityPenalty * math.exp( Score )
 	Score = min( Score, 1.0 )
 	Score = max( Score, 0.0 )
@@ -67,9 +69,9 @@ def Score( Hyp, Ref ):
 if __name__ == "__main__":
 	import sys
 	for HypA, HypB, Ref in ReadData( sys.stdin ):
+		Ref = " ".join( Ref )
 		ScoreA = Score( HypA, Ref )
 		ScoreB = Score( HypB, Ref )
-		print >>sys.stderr, ScoreA, ScoreB
 		if ScoreA > ScoreB:
 			print -1
 		elif ScoreA == ScoreB:
