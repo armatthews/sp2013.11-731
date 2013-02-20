@@ -7,3 +7,4 @@ for Line in sys.stdin:
 	Features = [ float( f ) for f in Line.strip().split( "\t" ) ]
 	Classification = int( Classifier.predict( Features )[ 0 ] )
 	print Classification
+	sys.stdout.flush()
