@@ -34,9 +34,5 @@ if __name__ == "__main__":
 	for HypA, HypB, Ref in ReadData( sys.stdin ):
 		ScoreA = Score( HypA, Ref, Alpha, Beta, Gamma )
 		ScoreB = Score( HypB, Ref, Alpha, Beta, Gamma )
-		if ScoreA > ScoreB:
-			print -1
-		elif ScoreA == ScoreB:
-			print 0
-		else:
-			print 1
+		print "%f\t%f" % ( ScoreA, ScoreB )
+		sys.stdout.flush()

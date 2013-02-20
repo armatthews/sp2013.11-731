@@ -1,5 +1,6 @@
 import sys
 from math import sqrt
+from util import ReadData
 
 def ssk( s, t, L, N ):
 	kp = {}
@@ -39,19 +40,17 @@ def ssk2( s, t, L, N ):
 	ktt = ssk( t, t, L, N )
 	return kst / sqrt( kss * ktt )
 
-def ReadData( stream ):
-        for Line in stream:
-                Parts = [ Part.strip() for Part in Line.strip().split( "|||" ) ]
-                HypA, HypB, Ref = [ [ Word.strip() for Word in Part.split() ] for Part in Parts ]
-                yield ( HypA, HypB, Ref )
+def Score( Hyp, Ref ):
+	return ssk2( Hyp, Ref, 0.91, 4 )
 
 for HypA, HypB, Ref in ReadData( sys.stdin ):
-	HypAScore = ssk2( HypA, Ref, 0.91, 4 )
-	HypBScore = ssk2( HypB, Ref, 0.91, 4 )
-	if abs( HypAScore - HypBScore ) < 0.000001:
-		print 0
-	elif HypAScore > HypBScore:
+	ScoreA = Score( HypA, Ref )
+	ScoreB = Score( HypB, Ref )
+	print >>sys.stderr, "%f\t%f" % ( ScoreA, ScoreB )
+	if ScoreA > ScoreB:
 		print -1
+	elif ScoreA == ScoreB:
+		print 0
 	else:
 		print 1
 	sys.stdout.flush()

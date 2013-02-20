@@ -80,7 +80,7 @@ def FindBestShift( Hyp, Ref, Edits, Matches ):
 
 def Score( Hyp, Ref ):
 	Edits, Matches = EditDistance( Hyp, Ref )
-	while True:
+	while False:
 		NewHyp, Edits = FindBestShift( Hyp, Ref, Edits, Matches )
 		if Hyp == NewHyp:
 			break
@@ -95,11 +95,5 @@ if __name__ == "__main__":
 	for HypA, HypB, Ref in ReadData( sys.stdin ):
 		ScoreA = Score( HypA, Ref )
 		ScoreB = Score( HypB, Ref )
-		#print ScoreA, ScoreB
-		if ScoreA > ScoreB:
-			print -1
-		elif ScoreA == ScoreB:
-			print 0
-		else:
-			print 1
+		print "%f\t%f" % (ScoreA, ScoreB )
 		sys.stdout.flush()
