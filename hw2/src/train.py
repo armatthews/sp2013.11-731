@@ -11,6 +11,6 @@ for Line in sys.stdin:
 	Data.append( Datum )
 	Labels.append( Label )
 
-svc = svm.SVC( kernel='rbf' )
+svc = svm.SVC( kernel='poly', degree=3 )
 svc.fit( Data, Labels )
 pickle.dump( svc, open( "classifier.pkl", "w" ) )
