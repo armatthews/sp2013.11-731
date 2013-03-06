@@ -1,0 +1,41 @@
+  Dev		Test		Desc
+0.503243			Character-based BLEU, N=1
+0.527892			Character-based BLEU, N=2
+0.537622			Character-based BLEU, N=3
+0.543651	0.535494	Character-based BLEU, N=4
+0.545711	0.539679	Character-based BLEU, N=5
+0.544185	0.539845	Character-based BLEU, N=6
+0.542277	0.539182	Character-based BLEU, N=7
+0.512324			BLEU, N=1
+0.519765			BLEU, N=2
+0.516102			BLEU, N=3
+0.512363	0.508433	BLEU, N=4
+0.513126			BLEU, N=5
+0.511256			BLEU, N=6
+0.537698	0.522896	Actual meteor, exact stem synonym paraphrase, English, with 0s
+		0.520244	"" but with no 0s
+0.435974	0.435498	Pure 1s
+0.433684	0.426422	Pure -1s
+0.130342	0.13808		Pure 0s
+0.000000	0.138121	One 1. Only 1 line of output.
+0.460089	0.425967	lmplz LM on uniq train+test refs. LM score only, no OOVs.
+0.402053			Length ratio only
+0.513393			Simple Meteor, 0.85, 0.2, 0.6
+0.469437			TER without shifts
+0.522741			String Subsequence Kernels
+0.579518	0.486594	rbf SVM on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, and SSK
+0.535371	0.532842	rbf SVM on cBLEU5 and BLEU4
+0.538042	0.536488	linear svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, and SSK
+0.538309	0.538436	quadratic svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, and SSK
+0.525641	0.52128		cubic svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, and SSK
+0.539835	0.537897	quadratic svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM
+0.647894	0.472753	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM
+0.639805	0.472463	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM, but trained without 0s in the data
+0.538958	0.537607	quadratic svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM, but trained without 0s in the data
+0.558188	0.522689	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM, gamma=0.0001, C=1000000.0
+0.542315	0.534665	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM, gamma=0.00001, C=10000000.0
+0.541819	0.535245	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, and POSLM, gamma=0.00001, C=10.0 ** 9
+0.543193	0.531184	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, POSLM, P1-4, and R1-4, gamma=0.00001, C=10.0 ** 9
+0.541705	0.534499	rbf svm on cBLEU5, BLEU4, LMScore, OOVs, LengthRatio, TERNoShifts, SSK, POSLM, P1-4, and R1-4, gamma=10.0 ** -6, C=10.0 ** 10
+0.534341	0.531184	rbf svm on cBLEU1-10, gamma=0.00001, C=10.0 ** 9
+0.563530	0.549459	rbf svm on cBLEU5, BLEU4, New LMScore, New OOVs, LengthRatio, TERNoShifts, SSK, POSLM, P1-4, and R1-4, gamma=10.0 ** -6, C=10.0 ** 10
