@@ -26,9 +26,9 @@ The first SVM I built used all of libsvm's default settings, including a Gaussia
 
 Next I repurposed the code I wrote for the genetic algorithm experiment to submit other carefully chosen output to the leaderboard every five minutes. I choose to continuously submit files to the leaderboard verifying whether the i'th line was or was not a -1. Rather than randomly choosing lines to submit, or simply beginning from the beginning of the file, I instead ordered all the lines by the difference between Hypothesis A's cBLEU score and Hypothesis B's cBLEU score, in increasing order. I then submitted those lines one by one to the grading script, gaining knowledge about over 2000 of the lines my model was least certain about.
 
-Finally, on the last day of the project, I realized that I was able to use external LMs in this experiment. As such, I rebuilt a quadratic and a gaussian SVM, with the LM features replaced with a new, bigger LM. These results, for the first time, beat my cBLEU baseline with a score of 0.563530 on the training set for the Gaussian SVM. The quadratic version scored a 0.559638 on the dev set but the highest score on the test set.. This qudatric SVM is also my best legitimate submission on the test set, scoring 0.550371.
+Finally, on the last day of the project, I realized that I was able to use external LMs in this experiment. As such, I rebuilt a quadratic and a gaussian SVM, with the LM features replaced with a new, bigger LM. These results, for the first time, beat my cBLEU baseline with a score of 0.563530 on the training set for the Gaussian SVM. The quadratic version scored a 0.559638 on the dev set but the highest score on the test set. This qudatric SVM is also my best legitimate submission on the test set, scoring 0.550371.
 
-My final submission combines the final Gaussian SVM described above with the knowledge gained by the script that continually tested pairs of hypotheses the cBLEU model was uncertain about. To generate my final submission, for each line I did the following:
+My final submission combines the final quadratic SVM described above with the knowledge gained by the script that continually tested pairs of hypotheses the cBLEU model was uncertain about. To generate my final submission, for each line I did the following:
 - If the two hypotheses are exactly the same:
 -	output 0
 - Otherwise:
