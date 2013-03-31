@@ -25,41 +25,26 @@ def print_table( f, table, key=lambda k: k ):
 				sys.stdout.write( "    \t" )
 		print
 
-def uncovered( coverage, i, j ):
-	for k in range( i, j ):
-		if coverage[ k ]:
-			return False
-	return True
-
-def calc_phrase_lm_score( phrase ):
+def calc_phrase_lm_score( phrase, start, end ):
 	score = 0.0
-	state = tuple()
+	state = tuple() if not start else lm.begin()
 	for word in phrase:
 		state, word_score = lm.score( state, word )
 		score += word_score
+	if end:
+		score += lm.end( state )
 	return score
 
-def estimate_future_cost( coverage ):
-	L = len( coverage )
-	cost = 0.0
-	i = 0
-	while i < L:
-		if coverage[ i ]:
-			i += 1
-			continue
-
-		j = [ j for j in range( i + 1, L ) if coverage[ j ] ]
-		if len( j ) == 0:
-			break
-		else:
-			j = min( j )
-			cost += tm_scores[ i, j ].logprob
-			translation = " ".join( [ piece.english for piece in tm_scores[ i, j ].translation_array ] )
-			cost += calc_phrase_lm_score( translation.split() )
-			i = j
-
-	return cost
 		
+def extract_english_recursive(h):
+	return '' if h.predecessor is None else '%s%s ' % (extract_english_recursive(h.predecessor), h.phrase.english)
+
+def get_best(score_element):
+	best = heapq.nlargest(1, score_element, key = lambda s: s.tm_score + s.lm_score)
+	if len(best) == 0:
+		return score_table_entry("", float("-inf"), float("-inf"))
+	else:
+		return best[0]
 
 parser = argparse.ArgumentParser(description='Simple phrase based decoder.')
 parser.add_argument('-i', '--input', dest='input', default='data/input', help='File containing sentences to translate (default=data/input)')
@@ -73,65 +58,50 @@ opts = parser.parse_args()
 tm = models.TM(opts.tm, sys.maxint)
 lm = models.LM(opts.lm)
 sys.stderr.write('Decoding %s...\n' % (opts.input,))
-input_sents = [tuple(line.strip().split()) for line in open(opts.input).readlines()[:opts.num_sents]]
 
-hypothesis = namedtuple('hypothesis', 'logprob, lm_state, predecessor, phrase, coverage')
-tm_table_entry = namedtuple('tm_table_entry', 'translation_array, logprob')
+input_stream = open(opts.input) if opts.input != "-" else sys.stdin
+input_sents = [tuple(line.strip().split()) for line in input_stream.readlines()[:opts.num_sents]]
+
+hypothesis = namedtuple('hypothesis', 'logprob, lm_state, predecessor, phrase, coverage, prevj')
+score_table_entry = namedtuple('score_table_entry', 'translation, tm_score, lm_score')
 for f in input_sents:
 	# tm_scores[ i, j ] holds the best possible TM score for the span f[i:j]
-	tm_scores = defaultdict( lambda: tm_table_entry( [], float( "-inf" ) ) )
-	for i in range( len( f ) + 1 ):
-		tm_scores[ i, i ] = tm_table_entry( [], 0.0 )
+	scores = {}
 
-	for i in range( len( f ) + 1 ):
-		for j in range( i + 1, len( f ) + 1 ):
-			phrase = f[ i : j ]
-			if phrase in tm:
-				best_translation = max( tm[ phrase ], key=lambda t: t.logprob )
-				tm_scores[ i, j ] = tm_table_entry( [ best_translation ], best_translation.logprob )
+	for i in range(len( f )):
+		for j in range(i + 1, len( f ) + 1):
+			scores[i,j] = []
 
-	# TODO: tm_scores[ k, j ] isn't finalized yet if k > i, so why does this seem to work?
-	for i in range( len( f ) + 1 ):
-		for j in range( i + 1, len( f ) + 1 ):
-			k = max( range( i, j ), key=lambda k: tm_scores[ i, k ].logprob + tm_scores[ k, j ].logprob )
-			tm_scores[ i, j ] = tm_table_entry( tm_scores[ i, k ].translation_array + tm_scores[ k, j ].translation_array, tm_scores[ i, k ].logprob + tm_scores[ k, j ].logprob )
+			phrase = f[i : j]
+			if phrase not in tm:
+				continue
 
-	initial_hypothesis = hypothesis(0.0, lm.begin(), None, None, [False for w in f])
-	stacks = [{} for _ in f] + [{}]
-	stacks[0][lm.begin()] = initial_hypothesis
-	for n, stack in enumerate(stacks[:-1]):
-		# extend the top s hypotheses in the current stack
-		for h in heapq.nlargest(opts.s, stack.itervalues(), key=lambda h: h.logprob + estimate_future_cost( h.coverage )): # prune
-			for i in [ i for i, c in enumerate( h.coverage ) if not c ][:2]:
-				for j in xrange(i+1,len(f)+1):
-					if not uncovered(h.coverage, i, j) or f[i:j] not in tm:
-						continue
-					for phrase in tm[f[i:j]]:
-						logprob = h.logprob + phrase.logprob
-						lm_state = h.lm_state
-						for word in phrase.english.split():
-							(lm_state, word_logprob) = lm.score(lm_state, word)
-							logprob += word_logprob
-						logprob += lm.end(lm_state) if j == len(f) else 0.0
-						new_coverage = h.coverage[:]
-						for k in range( i, j ):
-							new_coverage[ k ] = True
-						new_hypothesis = hypothesis(logprob, lm_state, h, phrase, new_coverage)
-						stack_index = n + j - i
-						if lm_state not in stacks[stack_index] or stacks[stack_index][lm_state].logprob < logprob: # second case is recombination
-							stacks[stack_index][lm_state] = new_hypothesis
+			for phrase in tm[phrase]:
+				lm_score = calc_phrase_lm_score( phrase.english.split(), i == 0, j == len( f ) )
+				heapq.heappush(scores[i, j], score_table_entry(phrase.english.split(), phrase.logprob, lm_score))
+			scores[i, j] = heapq.nlargest(opts.s, scores[i,j], key=lambda s: s.tm_score + s.lm_score)
 
-	# find best translation by looking at the best scoring hypothesis
-	# on the last stack
-	winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
-	def extract_english_recursive(h):
-		return '' if h.predecessor is None else '%s%s ' % (extract_english_recursive(h.predecessor), h.phrase.english)
-	print extract_english_recursive(winner)
+	#print_table( f, scores, lambda s: get_best(s).lm_score + get_best(s).tm_score )
 
-	if opts.verbose:
-		def extract_tm_logprob(h):
-			return 0.0 if h.predecessor is None else h.phrase.logprob + extract_tm_logprob(h.predecessor)
-		tm_logprob = extract_tm_logprob(winner)
-		sys.stderr.write('LM = %f, TM = %f, Total = %f\n' %
-			(winner.logprob - tm_logprob, tm_logprob, winner.logprob))
+	for n in range( 1, len( f ) + 1 ):
+		for i in range( 0, len( f ) + 1 - n ):
+			j = i + n
+			for k in range( i + 1 , j ):
+				for lhs in scores[i,k]:
+					for rhs in scores[k,j]:
+						translation = lhs.translation + rhs.translation
+						lm_score = calc_phrase_lm_score( translation, i == 0, j == len( f ) )
+						heapq.heappush(scores[i, j], score_table_entry(translation, lhs.tm_score + rhs.tm_score, lm_score))
+
+						translation = rhs.translation + lhs.translation
+						lm_score = calc_phrase_lm_score( translation, i == 0, j == len( f ) )
+						heapq.heappush(scores[i, j], score_table_entry(translation, lhs.tm_score + rhs.tm_score,  lm_score))
+
+				scores[i, j] = heapq.nlargest(opts.s, scores[i,j], key=lambda s: s.tm_score + s.lm_score)
+
+	#print_table( f, scores, lambda s: get_best(s).lm_score + get_best(s).tm_score )
 	
+	best = heapq.heappop( scores[0, len(f)] )
+	print " ".join( best.translation )
+	if opts.verbose:
+		print >>sys.stderr, "LM Score:", best.lm_score, "TM Score:", best.tm_score
