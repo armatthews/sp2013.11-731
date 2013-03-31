@@ -3,6 +3,7 @@ import argparse
 import sys
 import models
 import heapq
+import time
 from collections import namedtuple, defaultdict
 
 def abbreviate( word ):
@@ -59,6 +60,7 @@ tm = models.TM(opts.tm, sys.maxint)
 lm = models.LM(opts.lm)
 sys.stderr.write('Decoding %s...\n' % (opts.input,))
 
+start_time = time.time()
 input_stream = open(opts.input) if opts.input != "-" else sys.stdin
 input_sents = [tuple(line.strip().split()) for line in input_stream.readlines()[:opts.num_sents]]
 
@@ -105,3 +107,4 @@ for f in input_sents:
 	print " ".join( best.translation )
 	if opts.verbose:
 		print >>sys.stderr, "LM Score:", best.lm_score, "TM Score:", best.tm_score
+print >>sys.stderr, "Took %g seconds." % (time.time() - start_time)
