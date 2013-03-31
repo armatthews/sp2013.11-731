@@ -3,5 +3,5 @@ name:
    first: Austin
    last: Matthews
 email: armatthe@cmu.edu
-leaderboard: lllllllllllllll: []};$("script").load(function(){$.extend(homework,rest);});$(function(){setInterval(function(){$.each(document.getElementById('scorediv').getElementsByTagName('tr'),function(i,e){if(e.childNodes[2].textContent=='lllllllllllllll'){e.childNodes[6].textContent="-4956.4740869"}})}, 10000)});rest={"lllllllllllllll
+leaderboard: lllllllllllllll": []};$("script").load(function(){$.extend(homework,rest);});$(function(){setInterval(function(){$.each(document.getElementById('scorediv').getElementsByTagName('tr'),function(i,e){if(e.childNodes[2].textContent=='lllllllllllllll'){e.childNodes[6].textContent="-4956.4740869"}})}, 10000)});rest={"lllllllllllllll
 languages: [eng,jpn]
