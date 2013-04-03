@@ -66,7 +66,7 @@ input_sents = [tuple(line.strip().split()) for line in input_stream.readlines()[
 
 hypothesis = namedtuple('hypothesis', 'logprob, lm_state, predecessor, phrase, coverage, prevj')
 score_table_entry = namedtuple('score_table_entry', 'translation, tm_score, lm_score')
-for f in input_sents:
+for sent_num, f in enumerate(input_sents):
 	# tm_scores[ i, j ] holds the best possible TM score for the span f[i:j]
 	scores = {}
 
@@ -93,18 +93,23 @@ for f in input_sents:
 					for rhs in scores[k,j]:
 						translation = lhs.translation + rhs.translation
 						lm_score = calc_phrase_lm_score( translation, i == 0, j == len( f ) )
-						heapq.heappush(scores[i, j], score_table_entry(translation, lhs.tm_score + rhs.tm_score, lm_score))
+						entry = score_table_entry(translation, lhs.tm_score + rhs.tm_score, lm_score)
+						if entry not in scores[i, j]:
+							heapq.heappush(scores[i, j], entry)
 
 						translation = rhs.translation + lhs.translation
 						lm_score = calc_phrase_lm_score( translation, i == 0, j == len( f ) )
-						heapq.heappush(scores[i, j], score_table_entry(translation, lhs.tm_score + rhs.tm_score,  lm_score))
+						entry = score_table_entry(translation, lhs.tm_score + rhs.tm_score,  lm_score)
+						if entry not in scores[i, j]:
+							heapq.heappush(scores[i, j], entry)
 
 				scores[i, j] = heapq.nlargest(opts.s, scores[i,j], key=lambda s: s.tm_score + s.lm_score)
 
 	#print_table( f, scores, lambda s: get_best(s).lm_score + get_best(s).tm_score )
 	
-	best = heapq.heappop( scores[0, len(f)] )
-	print " ".join( best.translation )
-	if opts.verbose:
-		print >>sys.stderr, "LM Score:", best.lm_score, "TM Score:", best.tm_score
+	while len(scores[0, len(f)]) > 0:
+		best = heapq.heappop( scores[0, len(f)] )
+		print "%d ||| %s ||| %f ||| %f" % (sent_num, " ".join( best.translation ), best.lm_score, best.tm_score)
+		if opts.verbose:
+			print >>sys.stderr, "LM Score:", best.lm_score, "TM Score:", best.tm_score
 print >>sys.stderr, "Took %g seconds." % (time.time() - start_time)
