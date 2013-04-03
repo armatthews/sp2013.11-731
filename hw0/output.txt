@@ -3,5 +3,5 @@ name:
    first: Austin
    last: Matthews
 email: armatthe@cmu.edu
-leaderboard: áïO-oũèô
+leaderboard: Ll_n_n_l7
 languages: [eng,jpn]
