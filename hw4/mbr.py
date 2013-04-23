@@ -34,9 +34,11 @@ def genHyps(weights):
 			total_score = 0.0
 			for i, score in enumerate(hyp_scores):
 				other = sentence.hyps[i]
-				other_prob = exp(-dot_dict(weights, other.features))
-				total_score += hyp_scores[i] * other_prob
-			# TODO: Weight sum by p(ref)
+				try:
+					other_prob = exp(-dot_dict(weights, other.features))	
+				except:
+					other_prob = 1.0
+				total_score += hyp_scores[i] * other_prob	
 			sent_scores[hyp.text, hyp.ref_score] = total_score
 
 		best_hyp = max(sent_scores.iteritems(), key=itemgetter(1))
@@ -52,9 +54,10 @@ def score(hyps):
 			meteor += hyp_score * len(hyp_text.split())
 	return meteor / total_length
 
-def line_search(func, start_weights, alpha=None, beta=None, direction=None, epsilon=0.1):
+def line_search(func, start_weights, alpha=None, beta=None, direction=None, epsilon=0.1, step_size=1.0 ):
 	if direction == None:
 		direction = normalize([random.random() for _ in start_weights])
+		direction = [step_size * d for d in direction]
 	assert len(start_weights) == len(direction)
 
 	if alpha == None:
@@ -75,12 +78,12 @@ def line_search(func, start_weights, alpha=None, beta=None, direction=None, epsi
 	flambda2 = func(lambda2)
 
 	if flambda1 > flambda2:
-		return line_search(func, lambda1, alpha, lambda2, direction, epsilon)
+		return line_search(func, lambda1, alpha, lambda2, direction, epsilon, 0.618 * step_size)
 	elif flambda1 == flambda2:
 		midpoint = [l1 + 0.5 * (l2 - l1) for l1, l2 in zip(lambda1, lambda2)]
-		return line_search(func, midpoint, lambda1, lambda2, direction, epsilon)
+		return line_search(func, midpoint, lambda1, lambda2, direction, epsilon, 0.618 * step_size)
 	elif flambda1 < flambda2:
-		return line_search(func, lambda2, lambda1, beta, direction, epsilon)
+		return line_search(func, lambda2, lambda1, beta, direction, epsilon, 0.618 * step_size)
 
 def objective(weights):
 	weights_dict = {}
@@ -93,13 +96,20 @@ def objective(weights):
 Tune = False
 if True:
 	best_weights = [0.0, 0.0, 0.0]
+	best_score = objective(best_weights)
+	step_size = 20.0
 	i = 1
 	while True:
-		best_weights = line_search(objective, best_weights)
+		new_weights = line_search(objective, best_weights, step_size=step_size)
+		new_score = objective(new_weights)
+		step_size *= 0.618
+		if new_score >= best_score:
+			best_weights = new_weights
+			best_score = new_score
 		print >>sys.stderr, "Iteration %d weights:" % i
-		print >>sys.stderr, best_weights
-		print >>sys.stderr, "Approximate meteor score: %f" % objective(best_weights)
-	i += 1
+		print >>sys.stderr, new_weights
+		print >>sys.stderr, "Approximate meteor score: %f" % new_score
+		i += 1
 else:
 	weights = { u'p(e)': 0.0, u'p(e|f)': 0.0, u'p_lex(f|e)': 0.0 }
 	# -0.0313291224018224, 0.30109472699444484, 0.06739491027847236 (test)
