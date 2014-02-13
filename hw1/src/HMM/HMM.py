@@ -107,14 +107,14 @@ class TM:
 	def Input( self, stream ):
 		self.NullProbability = float( stream.readline().strip() )
 		stream.readline()
-		Line = stream.readline()
+		Line = stream.readline().decode('utf-8')
 		while Line != "":
 			Parts = Line.strip().split()
 			if len( Parts ) == 2:
 				self.TransitionTable[ int( Parts[ 0 ] ) ] = float( Parts[ 1 ] )
 			elif len( Parts ) == 3:
 				self.TranslationTable[ Parts[ 1 ] ][ Parts[ 0 ] ] = float( Parts[ 2 ] )
-			Line = stream.readline()
+			Line = stream.readline().decode('utf-8')
 
 	def GetBestAlignment( self, Source, Target ):
 		I = len( Source )
@@ -204,9 +204,9 @@ def IterateTables( TranslationTable, TransitionTable, Data ):
 		I = len( SourceSentence )
 		
 		# Update the counts
-		Alignment, AlignmentProbability = Model.GetBestAlignment( SourceSentence, TargetSentence )
+		Alignment, AlignmentProbability = Model.GetBestAlignment( SourceSentence, TargetSentence )	
 		AlignmentProbability = 1.0
-		assert AlignmentProbability >= 0.0 and AlignmentProbability <= 1.0
+		assert AlignmentProbability > 0.0 and AlignmentProbability <= 1.0
 		#sys.stderr.write( "Best alignment of sentence %d: %s with p %g\n" % ( i, Alignment, AlignmentProbability ) )
 
 		for j in range( len( TargetSentence ) ):
@@ -290,6 +290,8 @@ if __name__ == "__main__":
 	if len( sys.argv ) >= 6:
 		print "Loading IBM1 TM..."
 		Model.TranslationTable = LoadIBM1TM( sys.argv[ 5 ] )
+		#print "Loading HMM TM..."
+		#Model.Input( open(sys.argv[ 5 ]) )
 	ExpectedTargetWordCount = len( Model.TranslationTable )
 
 	i = 0

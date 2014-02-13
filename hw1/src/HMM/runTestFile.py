@@ -15,8 +15,8 @@ if __name__ == "__main__":
         SourceSentenceFile = sys.argv[ 2 ]
         TargetSentenceFile = sys.argv[ 3 ]
 
-        SourceSentences = open( SourceSentenceFile ).read().split( "\n" )
-        TargetSentences = open( TargetSentenceFile ).read().split( "\n" )
+        SourceSentences = open( SourceSentenceFile ).read().decode('utf-8').split( "\n" )
+        TargetSentences = open( TargetSentenceFile ).read().decode('utf-8').split( "\n" )
 
         print >>sys.stderr, "Loading model..."
         Model = TM()
@@ -39,6 +39,6 @@ if __name__ == "__main__":
 		TestSetLogProb += LogProb
                 AlignmentOutput = [ (j,i) for i,j in enumerate( Alignment ) ]
                 AlignmentString =  " ".join( [ "%d-%d" % (i,j) for (i,j) in AlignmentOutput ] )
-		print "\t".join( [ SourceSentence, TargetSentence, AlignmentString, str( LogProb ) ] )
+		print "\t".join( [ SourceSentence, TargetSentence, AlignmentString, str( LogProb ) ] ).encode('utf-8')
 	print "Test set log prob:", TestSetLogProb
 	print >>sys.stderr, "Done!"

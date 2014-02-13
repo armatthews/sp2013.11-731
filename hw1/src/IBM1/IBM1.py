@@ -1,7 +1,7 @@
 from collections import defaultdict
 from operator import itemgetter
 from math import exp
-from scipy.special import digamma
+#from scipy.special import digamma
 import sys
 import pickle
 import os
@@ -120,10 +120,10 @@ def Prior( i, j, m, n ):
 
 def Smooth( c ):
 	return c
-	return exp( digamma( c + 0.5 ) )
+	#return exp( digamma( c + 0.5 ) )
 
 def Iterate( p, Data ):
-	q = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
+	q = defaultdict( lambda: defaultdict( lambda: 10 ** -15 ) )
 	SourceCounts = defaultdict( lambda: 0.0 )
 	JointCounts = defaultdict( lambda: defaultdict( lambda: 0.0 ) )
 
